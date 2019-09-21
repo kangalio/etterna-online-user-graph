@@ -9,53 +9,7 @@ from tqdm import tqdm
 import util
 from util import parsedate, find_skillset_rating, find_ratings
 
-"""def calc_ratings(user):
-	INTERVAL = timedelta(days=7)
-	LOWER_LIMIT = datetime(year=2000, month=1, day=1)
-	UPPER_LIMIT = datetime.now()
-	
-	# Scores, sorted by datetime
-	scores = sorted(user["scores"], key=lambda s: s["datetime"])
-	
-	#skillsets = np.empty([7, len(scores)], dtype="float64")
-	skillsets = np.full([7, len(scores)], 1000, dtype="float64")
-	ss_len = 0
-	
-	# Datetime of last data point shown
-	interval_end = parsedate(scores[0]["datetime"]) + INTERVAL
-	years = []
-	ratings = []
-	i = 0
-	previous_i = 0
-	interval_i = 0
-	def add():
-		year = 2000 + (interval_end - LOWER_LIMIT).total_seconds() /60/60/24/365
-		years.append(year)
-		skillset_view = skillsets[:,:ss_len]
-		ratings.append(find_ratings(skillset_view)[0])
-	while i < len(scores):
-		date = parsedate(scores[i]["datetime"])
-		if date < interval_end:
-			overall = scores[i]["overall"]
-			if date > LOWER_LIMIT and date < UPPER_LIMIT and overall < 40 \
-					and scores[i]["wifescore"] >= 99.97 \
-					and scores[i]["wifescore"] < 100: # REMEMBER
-				nerf = overall - scores[i]["nerf"]
-				for j in range(7):
-					skillsets[j][ss_len] = scores[i]["skillsets"][j] - nerf
-				ss_len += 1
-			i += 1
-		else:
-			interval_end += INTERVAL
-			interval_i += 1
-			if previous_i == i: continue
-			previous_i = i
-			add()
-	add()
-	
-	return years, ratings"""
-
-def calc_ratings_2(user):
+def calc_ratings(user):
 	from itertools import groupby
 	
 	# Prepare scores
@@ -78,7 +32,6 @@ def calc_ratings_2(user):
 					or date > datetime.today() # In the future
 					or score["overall"] > 40 # Unreasonably high wife
 					or score["wifescore"] > 100): # Impossible accuracy
-				print("Skipped score")
 				continue
 			
 			nerf = score["overall"] - score["nerf"] # Get nerf delta
@@ -86,9 +39,15 @@ def calc_ratings_2(user):
 				skillsets[ss][ss_len] = score["skillsets"][ss] - nerf
 			ss_len += 1
 		
-		# Append year and overall ([0]) rating
-		years.append(util.date_to_year_float(date))
-		ratings.append(find_ratings(skillsets[:,:ss_len])[0])
+		# Overall rating
+		rating = find_ratings(skillsets[:,:ss_len])[0]
+		
+		# If rating changed from previous play-day (or if there's are
+		# no entries yet in thet ratings list)..
+		if len(ratings) == 0 or rating != ratings[-1]:
+			# ..append year and overall ([0]) rating
+			years.append(util.date_to_year_float(date))
+			ratings.append(rating)
 	
 	return years, ratings
 
@@ -102,8 +61,7 @@ def generate_ratings_file():
 
 	print(f"Calculating ratings (total {len(users)} users)..")
 	entries = []
-	#data_iterator = pool.map(calc_ratings, users, chunksize=5)
-	data_iterator = pool.map(calc_ratings_2, users, chunksize=5)
+	data_iterator = pool.map(calc_ratings, users, chunksize=5)
 	for ((years, ratings), user) in tqdm(zip(data_iterator, users)):
 		entry = {}
 		entry["username"] = str(user["username"])
