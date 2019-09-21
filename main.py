@@ -1,9 +1,11 @@
 import json, os
+from datetime import datetime
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import pyqtgraph as pg
 
+import util
 from calculate import generate_ratings_file
 
 class UI(QApplication):
@@ -72,8 +74,10 @@ class State:
 		self.users = json.load(open("ratings.json"))
 		#self.users = json.load(open("ratings-aaaa.json"))
 		
+		
 		usernames = [user["username"] for user in self.users]
 		self.ui = UI(usernames, self) # Pass self as callback holder
+		self.show_user_info(self.users[-1])
 	
 	def this_user(self):
 		if not self._this_user is None: return self._this_user
@@ -96,6 +100,33 @@ class State:
 			if user["username"].lower() == name.lower(): return user
 		return None
 	
+	def show_user_info(self, user):
+		years, ratings = user["years"], user["ratings"]
+		
+		now_year = util.date_to_year_float(datetime.now())
+		
+		days_ago = round((now_year - years[-1]) * 365)
+		years_played = round(user["years"][-1] - years[0])
+		
+		# max_rating_improvement is pretty boring cuz it always
+		# shows some rating improvement value from your very beginning
+		# where you jumped from 0 to ~10 in like a few days
+		# ~ max_rating_improvement = 0
+		# ~ for i in range(1, len(ratings)):
+			# ~ rating_improvement = ratings[i] - ratings[i-1]
+			# ~ if rating_improvement > max_rating_improvement:
+				# ~ max_rating_improvement = rating_improvement
+		
+		text = "\n".join([
+			f"Username: {user['username']}",
+			f"Current rating: {round(user['ratings'][-1], 2)}",
+			f"Started at rating {round(user['ratings'][0], 2)}",
+			f"Last played {days_ago} days ago",
+			f"Played for {years_played} years",
+			#f"Max rating improvement on one day: {round(max_rating_improvement, 2)}",
+		])
+		QMessageBox.information(None, user["username"], text)
+	
 	def add_user(self, user):
 		if user is None: return
 		
@@ -104,13 +135,23 @@ class State:
 		
 		x, y = user["years"], user["ratings"]
 		x.append(x[-1]) # Duplicate last element to satisfy pyqtgraph
+		
+		# Draw curve
 		pen = (1, 1)
 		item = self.ui.plot.plot(x, y, pen=pen, antialias=True, stepMode=True)
+		
+		# Add click callback
+		item.curve.setClickable(True, 4) # second argument is px
+		item.sigClicked.connect(lambda: self.show_user_info(user))
+		
+		# Add objects to lists
 		self.items.append(item)
 		self.plotted_users.append(user)
 		
+		# Add legend
 		self.ui.plot.legend.addItem(item, user["username"])
 		
+		# Redistribute colors
 		for (i, item) in enumerate(self.items):
 			pen = (i, len(self.items))
 			item.setPen(pen)
@@ -131,7 +172,6 @@ class State:
 		self.add_first_by(lambda user: user["ratings"][-1])
 	
 	def add_close_player(self):
-		print(self.this_user)
 		this_user = self.this_user()
 		if this_user is None: return # If username input box was cancelled
 		
