@@ -74,11 +74,10 @@ class State:
 		self.users = json.load(open("ratings.json"))
 		#self.users = json.load(open("ratings-aaaa.json"))
 		
-		
 		usernames = [user["username"] for user in self.users]
 		self.ui = UI(usernames, self) # Pass self as callback holder
-		self.show_user_info(self.users[-1])
 	
+	# Returns this user. If unknown, asks for EO username in dialog box
 	def this_user(self):
 		if not self._this_user is None: return self._this_user
 		
@@ -95,11 +94,13 @@ class State:
 	def run(self):
 		self.ui.exec_()
 	
+	# Find user by name
 	def find_user(self, name):
 		for user in self.users:
 			if user["username"].lower() == name.lower(): return user
 		return None
 	
+	# Show up popup window with information about given user
 	def show_user_info(self, user):
 		years, ratings = user["years"], user["ratings"]
 		
@@ -108,25 +109,33 @@ class State:
 		days_ago = round((now_year - years[-1]) * 365)
 		years_played = round(user["years"][-1] - years[0])
 		
-		# max_rating_improvement is pretty boring cuz it always
-		# shows some rating improvement value from your very beginning
-		# where you jumped from 0 to ~10 in like a few days
-		# ~ max_rating_improvement = 0
-		# ~ for i in range(1, len(ratings)):
-			# ~ rating_improvement = ratings[i] - ratings[i-1]
-			# ~ if rating_improvement > max_rating_improvement:
-				# ~ max_rating_improvement = rating_improvement
-		
 		text = "\n".join([
 			f"Username: {user['username']}",
 			f"Current rating: {round(user['ratings'][-1], 2)}",
 			f"Started at rating {round(user['ratings'][0], 2)}",
 			f"Last played {days_ago} days ago",
 			f"Played for {years_played} years",
-			#f"Max rating improvement on one day: {round(max_rating_improvement, 2)}",
 		])
-		QMessageBox.information(None, user["username"], text)
+		
+		box = QMessageBox(QMessageBox.Icon.NoIcon, "a", text)
+		deletion_button = QPushButton("Delete this line")
+		box.addButton(deletion_button, QMessageBox.DestructiveRole)
+		box.addButton(QMessageBox.Ok)
+		box.exec_()
+		if box.clickedButton() == deletion_button:
+			self.delete_plot(user)
 	
+	def delete_plot(self, user):
+		item = self.items[self.plotted_users.index(user)]
+		self.ui.plot.legend.removeItem(item)
+		self.ui.plot.removeItem(item)
+		
+		self.items.remove(item)
+		self.plotted_users.remove(user)
+		
+		self.redistribute_colors()
+	
+	# Plots a user on the screen
 	def add_user(self, user):
 		if user is None: return
 		
@@ -134,7 +143,8 @@ class State:
 		if user in self.plotted_users: return
 		
 		x, y = user["years"], user["ratings"]
-		x.append(x[-1]) # Duplicate last element to satisfy pyqtgraph
+		x = [*x, x[-1]] # Duplicate last element to satisfy pyqtgraph
+		# Also, do that out-of-place as to not modify the original data
 		
 		# Draw curve
 		pen = (1, 1)
@@ -151,7 +161,9 @@ class State:
 		# Add legend
 		self.ui.plot.legend.addItem(item, user["username"])
 		
-		# Redistribute colors
+		self.redistribute_colors()
+	
+	def redistribute_colors(self):
 		for (i, item) in enumerate(self.items):
 			pen = (i, len(self.items))
 			item.setPen(pen)
