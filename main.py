@@ -29,7 +29,7 @@ class UI(QApplication):
 		
 		completer = QCompleter(usernames)
 		completer.setCaseSensitivity(Qt.CaseInsensitive)
-		completer.setCompletionMode(QCompleter.InlineCompletion)
+		completer.setCompletionMode(QCompleter.PopupCompletion)
 		inputbox.setCompleter(completer)
 		
 		button_row_widget = QWidget()
@@ -66,16 +66,27 @@ class State:
 	plotted_users = []
 	
 	users, ui = None, None
-	this_user = None
+	_this_user = None
 	
 	def __init__(self):
 		self.users = json.load(open("ratings.json"))
 		#self.users = json.load(open("ratings-aaaa.json"))
 		
-		self.this_user = self.find_user("kangalioo") # REMEMBER
-		
 		usernames = [user["username"] for user in self.users]
 		self.ui = UI(usernames, self) # Pass self as callback holder
+	
+	def this_user(self):
+		if not self._this_user is None: return self._this_user
+		
+		question = "Enter your EtternaOnline username:"
+		text, ok = QInputDialog.getText(None, question, question)
+		
+		if ok:
+			# Might return None if given EO user doesn't exist
+			self._this_user = self.find_user(text)
+			return self._this_user
+		else:
+			return None
 	
 	def run(self):
 		self.ui.exec_()
@@ -86,7 +97,19 @@ class State:
 		return None
 	
 	def add_user(self, user):
-		x, y = user["years"], user["ratings"]
+		if user is None: return
+		
+		# We don't need the same user twice
+		if user in self.plotted_users: return
+		
+		x, y = [], []
+		years, ratings = user["years"], user["ratings"]
+		for i in range(len(years)):
+			x.append(years[i])
+			y.append(ratings[i])
+			if i+1 != len(years):
+				x.append(years[i+1] - 0.00001)
+				y.append(ratings[i])
 		pen = (1, 1)
 		item = self.ui.plot.plot(x, y, pen=pen, antialias=True)
 		self.items.append(item)
@@ -114,8 +137,12 @@ class State:
 		self.add_first_by(lambda user: user["ratings"][-1])
 	
 	def add_close_player(self):
+		print(self.this_user)
+		this_user = self.this_user()
+		if this_user is None: return # If username input box was cancelled
+		
 		def map_rating_delta(user):
-			my_rating = self.this_user["ratings"][-1]
+			my_rating = this_user["ratings"][-1]
 			other_rating = user["ratings"][-1]
 			return abs(my_rating - other_rating)
 		
