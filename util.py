@@ -4,8 +4,16 @@ import math
 from numba import jit
 import numpy as np
 
-# Parses date in EO format
+# Parses datetime in EO format
 def parsedate(s): return datetime.strptime(s, "%Y-%m-%d")
+
+# Converts a datetime to a year decimal. E.g. July 2019 -> ~2019.5
+# Date should probably be after 2000
+def date_to_year_float(date):
+	year_2000 = datetime(year=2000, month=1, day=1)
+	seconds_since_2000 = (date - year_2000).total_seconds()
+	years = seconds_since_2000 / (60*60*24*365) + 2000
+	return years
 
 # Takes a potential rating, and a list of skillset ratings (one for each
 # score). Returns a boolean, whether the given potential rating is

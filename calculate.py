@@ -6,13 +6,13 @@ import numpy as np
 import orjson
 from tqdm import tqdm
 
+import util
 from util import parsedate, find_skillset_rating, find_ratings
 
-def calc_ratings(user):
+"""def calc_ratings(user):
 	INTERVAL = timedelta(days=7)
 	LOWER_LIMIT = datetime(year=2000, month=1, day=1)
 	UPPER_LIMIT = datetime.now()
-	np.set_printoptions(threshold=np.inf)
 	
 	# Scores, sorted by datetime
 	scores = sorted(user["scores"], key=lambda s: s["datetime"])
@@ -23,16 +23,16 @@ def calc_ratings(user):
 	
 	# Datetime of last data point shown
 	interval_end = parsedate(scores[0]["datetime"]) + INTERVAL
-	x = []
-	y = []
+	years = []
+	ratings = []
 	i = 0
 	previous_i = 0
 	interval_i = 0
 	def add():
 		year = 2000 + (interval_end - LOWER_LIMIT).total_seconds() /60/60/24/365
-		x.append(year)
+		years.append(year)
 		skillset_view = skillsets[:,:ss_len]
-		y.append(find_ratings(skillset_view)[0])
+		ratings.append(find_ratings(skillset_view)[0])
 	while i < len(scores):
 		date = parsedate(scores[i]["datetime"])
 		if date < interval_end:
@@ -53,18 +53,57 @@ def calc_ratings(user):
 			add()
 	add()
 	
-	return x, y
+	return years, ratings"""
+
+def calc_ratings_2(user):
+	from itertools import groupby
+	
+	# Prepare scores
+	scores = [s for s in user["scores"] if s["nerf"] != 0] # Filter invalid
+	scores = zip(scores, [util.parsedate(s["datetime"]) for s in scores]) # Zip with parsed dates
+	scores = sorted(scores, key=lambda pair: pair[1]) # Sort by date
+	
+	skillsets = np.empty([7, len(scores)], dtype="float64")
+	ss_len = 0
+	
+	years = []
+	ratings = []
+	
+	for date, pairs in groupby(scores, lambda s: s[1]):
+		# Extract nerfed skillset values into `skillsets`
+		for score in (pair[0] for pair in pairs):
+			# Skip score if it's invalid
+			if (score["overall"] == 0 # EO says it's invalid
+					or date < datetime(year=2000, month=1, day=1) # Too old
+					or date > datetime.today() # In the future
+					or score["overall"] > 40 # Unreasonably high wife
+					or score["wifescore"] > 100): # Impossible accuracy
+				print("Skipped score")
+				continue
+			
+			nerf = score["overall"] - score["nerf"] # Get nerf delta
+			for ss in range(7): # Iterate skillsets
+				skillsets[ss][ss_len] = score["skillsets"][ss] - nerf
+			ss_len += 1
+		
+		# Append year and overall ([0]) rating
+		years.append(util.date_to_year_float(date))
+		ratings.append(find_ratings(skillsets[:,:ss_len])[0])
+	
+	return years, ratings
+
 
 def generate_ratings_file():
 	print("Loading scores from json..")
-	users = orjson.loads(open("../etterna-leaderboard-scrape/scores4.json").read())
+	users = orjson.loads(open("misc/scores.json").read())
 
 	print("Setting up process pool..")
 	pool = ProcessPoolExecutor(os.cpu_count())
 
 	print(f"Calculating ratings (total {len(users)} users)..")
 	entries = []
-	data_iterator = pool.map(calc_ratings, users, chunksize=5)
+	#data_iterator = pool.map(calc_ratings, users, chunksize=5)
+	data_iterator = pool.map(calc_ratings_2, users, chunksize=5)
 	for ((years, ratings), user) in tqdm(zip(data_iterator, users)):
 		entry = {}
 		entry["username"] = str(user["username"])

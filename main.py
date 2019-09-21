@@ -101,6 +101,8 @@ class State:
 	# Plots the highest player (ranked by `sorting_key`) that's not
 	# already plotted. If `top_first` is False, the lowest player is
 	# chosen.
+	# TODO: this is pretty horible efficiency-wise (sorting the whole
+	# list just to get one element). Maybe improve?
 	def add_first_by(self, sorting_key, top_first=True):
 		users = sorted(self.users, key=sorting_key, reverse=top_first)
 		for user in users:
@@ -119,5 +121,5 @@ class State:
 		
 		self.add_first_by(map_rating_delta, top_first=False)
 
-generate_ratings_file()
-#State().run()
+#generate_ratings_file()
+State().run()
