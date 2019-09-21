@@ -102,16 +102,10 @@ class State:
 		# We don't need the same user twice
 		if user in self.plotted_users: return
 		
-		x, y = [], []
-		years, ratings = user["years"], user["ratings"]
-		for i in range(len(years)):
-			x.append(years[i])
-			y.append(ratings[i])
-			if i+1 != len(years):
-				x.append(years[i+1] - 0.00001)
-				y.append(ratings[i])
+		x, y = user["years"], user["ratings"]
+		x.append(x[-1]) # Duplicate last element to satisfy pyqtgraph
 		pen = (1, 1)
-		item = self.ui.plot.plot(x, y, pen=pen, antialias=True)
+		item = self.ui.plot.plot(x, y, pen=pen, antialias=True, stepMode=True)
 		self.items.append(item)
 		self.plotted_users.append(user)
 		
