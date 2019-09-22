@@ -59,10 +59,10 @@ def generate_ratings_file():
 	print("Setting up process pool..")
 	pool = ProcessPoolExecutor(os.cpu_count())
 
-	print(f"Calculating ratings (total {len(users)} users)..")
+	print(f"Calculating ratings..")
 	entries = []
 	data_iterator = pool.map(calc_ratings, users, chunksize=5)
-	for ((years, ratings), user) in tqdm(zip(data_iterator, users)):
+	for ((years, ratings), user) in tqdm(zip(data_iterator, users), total=len(users)):
 		entry = {}
 		entry["username"] = str(user["username"])
 		entry["dates"] = years
