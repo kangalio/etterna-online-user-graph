@@ -34,9 +34,9 @@ def calc_ratings(user):
 					or score["wifescore"] > 100): # Impossible accuracy
 				continue
 			
-			nerf = score["overall"] - score["nerf"] # Get nerf delta
+			nerf_multiplier = score["nerf"] / score["overall"]
 			for ss in range(7): # Iterate skillsets
-				skillsets[ss][ss_len] = score["skillsets"][ss] - nerf
+				skillsets[ss][ss_len] = score["skillsets"][ss] * nerf_multiplier
 			ss_len += 1
 		
 		# Overall rating

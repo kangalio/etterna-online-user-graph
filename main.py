@@ -148,7 +148,7 @@ class State:
 		
 		# Draw curve
 		pen = (1, 1)
-		item = self.ui.plot.plot(x, y, pen=pen, antialias=True, stepMode=True)
+		item = self.ui.plot.plot(x, y, pen=pen, antialias=True, stepMode=True, name=user["username"])
 		
 		# Add click callback
 		item.curve.setClickable(True, 4) # second argument is px
@@ -157,9 +157,6 @@ class State:
 		# Add objects to lists
 		self.items.append(item)
 		self.plotted_users.append(user)
-		
-		# Add legend
-		self.ui.plot.legend.addItem(item, user["username"])
 		
 		self.redistribute_colors()
 	
