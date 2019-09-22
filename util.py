@@ -6,6 +6,8 @@ import numpy as np
 
 # Parses datetime in EO format
 def parsedate(s): return datetime.strptime(s, "%Y-%m-%d")
+def formatdate(d): return datetime.strftime(d, "%Y-%m-%d")
+def formatdatetime(d): return datetime.strftime(d, "%Y-%m-%d %H:%M:%S")
 
 # Converts a datetime to a year decimal. E.g. July 2019 -> ~2019.5
 # Date should probably be after 2000

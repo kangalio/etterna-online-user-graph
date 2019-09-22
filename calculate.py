@@ -20,7 +20,7 @@ def calc_ratings(user):
 	skillsets = np.empty([7, len(scores)], dtype="float64")
 	ss_len = 0
 	
-	years = []
+	dates = []
 	ratings = []
 	
 	for date, pairs in groupby(scores, lambda s: s[1]):
@@ -46,10 +46,10 @@ def calc_ratings(user):
 		# no entries yet in thet ratings list)..
 		if len(ratings) == 0 or rating != ratings[-1]:
 			# ..append year and overall ([0]) rating
-			years.append(util.date_to_year_float(date))
+			dates.append(util.formatdate(date))
 			ratings.append(rating)
 	
-	return years, ratings
+	return dates, ratings
 
 
 def generate_ratings_file():
@@ -65,12 +65,12 @@ def generate_ratings_file():
 	for ((years, ratings), user) in tqdm(zip(data_iterator, users)):
 		entry = {}
 		entry["username"] = str(user["username"])
-		entry["years"] = years
+		entry["dates"] = years
 		entry["ratings"] = ratings
 		entries.append(entry)
 
 	print(f"Dumping data into json file..")
-	json.dump(entries, open("ratings.json", "w"), indent=4)
+	json.dump(entries, open("ratings.json", "w"), indent=2)
 
 	print("Done, shutting down process pool..")
 	pool.shutdown()

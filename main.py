@@ -142,7 +142,9 @@ class State:
 		# We don't need the same user twice
 		if user in self.plotted_users: return
 		
-		x, y = user["years"], user["ratings"]
+		dates = user["dates"]
+		x = [util.date_to_year_float(util.parsedate(d)) for d in dates]
+		y = user["ratings"]
 		x = [*x, x[-1]] # Duplicate last element to satisfy pyqtgraph
 		# Also, do that out-of-place as to not modify the original data
 		
@@ -191,5 +193,6 @@ class State:
 		
 		self.add_first_by(map_rating_delta, top_first=False)
 
-#generate_ratings_file()
+generate_ratings_file()
+#generate_flourish_csv()
 State().run()
