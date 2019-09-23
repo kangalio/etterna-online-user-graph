@@ -1,13 +1,22 @@
 #import pyqtgraph as pg
 from datetime import datetime
-import math
+import math, os
 from numba import jit
 import numpy as np
+from concurrent.futures import ProcessPoolExecutor
+
+POOL = ProcessPoolExecutor(os.cpu_count())
 
 # Parses datetime in EO format
 def parsedate(s): return datetime.strptime(s, "%Y-%m-%d")
+#def parseonlydate(s): return parsedate(s).date()
 def formatdate(d): return datetime.strftime(d, "%Y-%m-%d")
 def formatdatetime(d): return datetime.strftime(d, "%Y-%m-%d %H:%M:%S")
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 # Converts a datetime to a year decimal. E.g. July 2019 -> ~2019.5
 # Date should probably be after 2000

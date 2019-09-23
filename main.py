@@ -7,6 +7,7 @@ import pyqtgraph as pg
 
 import util
 from calculate import generate_ratings_file
+from flourish import generate_flourish_csv
 
 class UI(QApplication):
 	root = None
@@ -193,6 +194,6 @@ class State:
 		
 		self.add_first_by(map_rating_delta, top_first=False)
 
-generate_ratings_file()
+#generate_ratings_file()
 #generate_flourish_csv()
 State().run()
